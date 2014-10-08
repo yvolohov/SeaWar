@@ -3,6 +3,7 @@ function yvSeaWar()
     this.humanField = this.getEmptyField();
     this.computerField = this.getEmptyField();
     
+    this.setShips(this.humanField);
     console.log(this.cellExist(3, 3));
     console.log(this.cellExist(3, 9));    
 }
@@ -27,6 +28,14 @@ yvSeaWar.prototype =
         return field;
     },
     
+    getCell : function(field, posX, posY)
+    {
+        if (!this.cellExist(posX, posY))
+            {return -1;}
+            
+        return field[posY][posX];
+    },
+    
     cellExist : function(posX, posY)
     {
         return (posX >= 0 && posY >= 0 && 
@@ -46,7 +55,7 @@ yvSeaWar.prototype =
     
     setShip : function(field, ship, direction)
     {
-        
+        console.log(String(ship));
     }
 };
 
