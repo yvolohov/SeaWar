@@ -211,7 +211,7 @@ yvSeaWar.prototype.mAI =
     },
 
     /* Выстрел по частично подбитому кораблю */
-    doNextAttack : function(cont, field)
+    doSecondAttack : function(cont, field)
     {
         
     }
