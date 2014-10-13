@@ -6,9 +6,18 @@ function yvSeaWar()
     this.ships = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1];
     this.humanField = this.mCommon.getEmptyField(this);
     this.computerField = this.mCommon.getEmptyField(this);
+    this.computerData = 
+    {
+        state : null,
+        x1 : null,
+        y1 : null,
+        x2 : null,
+        y2 : null,
+        typeAttack : 1       
+    };
     
     this.mShipSetting.setShips(this, this.humanField);
-    this.mAI.startWar(this, this.humanField);
+    this.mAI.aiMove(this, this.humanField);
     this.vTest.showField(this, this.humanField);
 }
 
@@ -157,8 +166,15 @@ yvSeaWar.prototype.mShipSetting =
 yvSeaWar.prototype.mAI = 
 {        
     /* test */
-    startWar : function(cont, field)
+    aiMove : function(cont, field)
     {
+        var data = this.computerData;
+        
+        if (data.typeAttack === 1) {}
+        else if (data.typeAttack === 2) {}
+        else if (data.typeAttack === 3) {}
+        
+        /*
         var firstAttackData, secondAttackData;
         
         do {firstAttackData = cont.mAI.doFirstAttack(cont, field);}
@@ -169,6 +185,7 @@ yvSeaWar.prototype.mAI =
         
         do {secondAttackData = cont.mAI.doSecondAttack(cont, field, firstAttackData);}
         while (secondAttackData.state === cont.FAILED_ATTACK);
+        */
     },
             
     /* Выстрел в случайную ячейку */
