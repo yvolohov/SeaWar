@@ -6,18 +6,15 @@ function yvSeaWar()
     this.ships = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1];
     this.humanField = this.mCommon.getEmptyField(this);
     this.computerField = this.mCommon.getEmptyField(this);
-    this.computerData = 
-    {
-        state : null,
-        x1 : null,
-        y1 : null,
-        x2 : null,
-        y2 : null,
-        typeAttack : 1       
-    };
-    
+    this.computerMotion = this.mAI.getMotionStruct(this); 
+
     this.mShipSetting.setShips(this, this.humanField);
-    this.mAI.aiMove(this, this.humanField);
+    this.vTest.showField(this, this.humanField);
+    
+    for (var count = 1; count < 40; count++)
+        {this.mAI.aiMove(this, this.humanField, this.computerMotion);}
+    
+    console.log("----------");
     this.vTest.showField(this, this.humanField);
 }
 
@@ -86,6 +83,16 @@ yvSeaWar.prototype.mCommon =
                 cont.mCommon.setCell(cont, field, x, y, value);
             }
         }        
+    },
+
+    getArraySum : function(cont, arr)
+    {
+        var sum = 0;
+        
+        for (var count = 0; count < arr.length; count++)
+            {sum += arr[count];}
+        
+        return sum;
     }
 };
 
@@ -165,31 +172,40 @@ yvSeaWar.prototype.mShipSetting =
 /* Код игрового интеллекта (модель) */
 yvSeaWar.prototype.mAI = 
 {        
-    /* test */
-    aiMove : function(cont, field)
-    {
-        var data = this.computerData;
+    /* Игровой интеллект делает один ход
+     * cont - контекст;
+     * field - игровое поле противника;
+     * motion - объект с данными уже сделанных ходов; */
+    aiMove : function(cont, field, motion)
+    {      
+        /* Стратегии атаки: наугад - 1, если открыта одна клетка - 2,
+         * если открыты две или больше клеток - 3 */
+        if (motion.typeAttack === 1) 
+            {cont.mAI.doFirstAttack(cont, field, motion);}
+        else if (motion.typeAttack === 2) 
+            {cont.mAI.doSecondAttack(cont, field, motion);}
+        else if (motion.typeAttack === 3) 
+            {cont.mAI.doThirdAttack(cont, field, motion);}
         
-        if (data.typeAttack === 1) {}
-        else if (data.typeAttack === 2) {}
-        else if (data.typeAttack === 3) {}
+        /* После атаки корабль полностью уничтожен */
+        if (motion.state === cont.IMPOSSIBLE_ATTACK)
+        {
+            motion.state = cont.IMPOSSIBLE_ATTACK;
+            motion.x1 = motion.y1 = motion.x2 = motion.y2 = 0;
+            motion.typeAttack = 1;
+            return;
+        }
         
-        /*
-        var firstAttackData, secondAttackData;
-        
-        do {firstAttackData = cont.mAI.doFirstAttack(cont, field);}
-        while (firstAttackData.state === cont.FAILED_ATTACK);
-           
-        if (firstAttackData.state !== cont.SUCCESSFUL_ATTACK)
-            {return;}
-        
-        do {secondAttackData = cont.mAI.doSecondAttack(cont, field, firstAttackData);}
-        while (secondAttackData.state === cont.FAILED_ATTACK);
-        */
+        /* После атаки корабль частично подбит */
+        if (motion.state === cont.SUCCESSFUL_ATTACK)
+        {
+            if (motion.typeAttack === 1 || motion.typeAttack === 2)
+                {motion.typeAttack++;}
+        }
     },
             
     /* Выстрел в случайную ячейку */
-    doFirstAttack : function(cont, field)
+    doFirstAttack : function(cont, field, motion)
     {
         var positions = [];
         
@@ -209,7 +225,7 @@ yvSeaWar.prototype.mAI =
                     {positions[positions.length] = {x : x, y : y};}
             }
         }
-        return cont.mAI.doAttack(cont, field, positions);
+        cont.mAI.doAttack(cont, field, motion, positions, 1);
     },
     
     checkNeighbours : function(cont, field, posX, posY)
@@ -232,14 +248,12 @@ yvSeaWar.prototype.mAI =
         return true;
     },
 
-    doAttack : function(cont, field, positions)
-    {
-        var retStruct = {};
-        
+    doAttack : function(cont, field, motion, positions, type)
+    {       
         if (positions.length === 0)
         {
-            retStruct.state = cont.IMPOSSIBLE_ATTACK;
-            return retStruct;
+            motion.state = cont.IMPOSSIBLE_ATTACK;
+            return;
         }    
         
         var index = Math.floor(Math.random() * positions.length);
@@ -247,28 +261,41 @@ yvSeaWar.prototype.mAI =
         var cellValue = cont.mCommon.getCell(cont, field, position.x, position.y);
         cont.mCommon.setCell(cont, field, position.x, position.y, cellValue + 2);
 
-        retStruct.state = (cellValue === cont.CLOSED_SHIP_CELL) 
-            ? cont.SUCCESSFUL_ATTACK : cont.FAILED_ATTACK;
-        retStruct.x = position.x;
-        retStruct.y = position.y;
+        if (cellValue === cont.CLOSED_EMPTY_CELL) 
+        {
+            motion.state = cont.FAILED_ATTACK;
+            return;
+        }
         
-        return retStruct;    
+        motion.state = cont.SUCCESSFUL_ATTACK;
+        
+        if (type > 1)
+        {
+            motion.x1 = (position.x <= motion.x1) ? position.x : motion.x1;
+            motion.x2 = (position.x >= motion.x2) ? position.x : motion.x2;
+            motion.y1 = (position.y <= motion.y1) ? position.y : motion.y1;
+            motion.y2 = (position.y >= motion.y2) ? position.y : motion.y2;
+        }
+        else 
+        {
+            motion.x1 = motion.x2 = position.x;
+            motion.y1 = motion.y2 = position.y;
+        }
     },
 
     /* Второй выстрел после первого попадания в корабль */
-    doSecondAttack : function(cont, field, firstAttackData)
+    doSecondAttack : function(cont, field, motion)
     {
         var rawPositions = 
         [
-            {x : firstAttackData.x - 1, y: firstAttackData.y},
-            {x : firstAttackData.x + 1, y: firstAttackData.y},
-            {x : firstAttackData.x, y: firstAttackData.y - 1},
-            {x : firstAttackData.x, y: firstAttackData.y + 1}            
+            {x : motion.x1 - 1, y: motion.y1},
+            {x : motion.x1 + 1, y: motion.y1},
+            {x : motion.x1, y: motion.y1 - 1},
+            {x : motion.x1, y: motion.y1 + 1}            
         ];
               
-        var positions = cont.mAI.checkTargets(cont, field, rawPositions);
-        
-        return cont.mAI.doAttack(cont, field, positions);
+        var positions = cont.mAI.checkTargets(cont, field, rawPositions);       
+        cont.mAI.doAttack(cont, field, motion, positions, 2);
     },
     
     checkTargets : function(cont, field, rawPositions)
@@ -285,6 +312,42 @@ yvSeaWar.prototype.mAI =
                 {positions[positions.length] = rawPositions[count];}    
         }
         return positions;
+    },
+    
+    /* Третий и следующие выстрелы, после второго попадания в корабль */
+    doThirdAttack : function(cont, field, motion)
+    {
+        var rawPositions = [{x : 0, y : 0}, {x : 0, y : 0}];
+        
+        if (motion.x1 !== motion.x2)
+        {
+            rawPositions[0].x = motion.x1 - 1;
+            rawPositions[0].y = motion.y1;
+            rawPositions[1].x = motion.x2 + 1;
+            rawPositions[1].y = motion.y2;
+        }
+        
+        if (motion.y1 !== motion.y2)
+        {
+            rawPositions[0].x = motion.x1;
+            rawPositions[0].y = motion.y1 - 1;
+            rawPositions[1].x = motion.x2;
+            rawPositions[1].y = motion.y2 + 1;
+        }
+        var positions = cont.mAI.checkTargets(cont, field, rawPositions);
+        cont.mAI.doAttack(cont, field, motion, positions, 3);
+    },
+
+    getMotionStruct : function(cont)
+    {
+        return {
+            state : cont.IMPOSSIBLE_ATTACK,
+            x1 : 0,
+            y1 : 0,
+            x2 : 0,
+            y2 : 0,
+            typeAttack : 1       
+        };
     }
 };
 
