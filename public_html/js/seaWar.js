@@ -1,6 +1,7 @@
 /* Объект хранит данные игры */
-function yvSeaWar()
+function yvSeaWar(canvas)
 {     
+    this.canvas = canvas;
     this.fieldWidth = 10;
     this.fieldHeight = 10;
     this.ships = [4, 3, 3, 2, 2, 2, 1, 1, 1, 1];
@@ -9,13 +10,11 @@ function yvSeaWar()
     this.computerMotion = this.mAI.getMotionStruct(this); 
 
     this.mShipSetting.setShips(this, this.humanField);
-    this.vTest.showField(this, this.humanField);
-    
+   
     for (var count = 1; count < 40; count++)
         {this.mAI.aiMove(this, this.humanField, this.computerMotion);}
     
-    console.log("----------");
-    this.vTest.showField(this, this.humanField);
+    this.vCommon.redrawField(this, this.humanField);
 }
 
 /* Константы состояний ячеек поля */
@@ -31,7 +30,13 @@ yvSeaWar.prototype =
     /* Результаты выстрелов по ячейке */
     FAILED_ATTACK : 0,
     SUCCESSFUL_ATTACK : 1,
-    IMPOSSIBLE_ATTACK : 2
+    IMPOSSIBLE_ATTACK : 2,
+    
+    /* Константы view */
+    CELL_SIZE_PX : 30,
+    CLOSED_CELL_COLOR : "#696969",
+    EMPTY_CELL_COLOR : "#6495ED",
+    SHIP_CELL_COLOR : "#FF0000"       
 };
 
 /* Общий код (модель) */
@@ -351,24 +356,43 @@ yvSeaWar.prototype.mAI =
     }
 };
 
-/* Код тестового отображения (вид) */
-yvSeaWar.prototype.vTest = 
-{
-    /* test */
-    showField : function(cont, field)
-    {
-        var str = "";
+/* Код отображения (вид) */
+yvSeaWar.prototype.vCommon = 
+{   
+    redrawField : function(cont, field)
+    {       
+        var cont2D = cont.canvas.getContext("2d");
         
         for (var y = 0; y < cont.fieldHeight; y++)
         {
+            var posY = y * (cont.CELL_SIZE_PX + 1);
+            
             for (var x = 0; x < cont.fieldWidth; x++)
             {                
-                str = str + "  " + cont.mCommon.getCell(cont, field, x, y);                       
+                var cell = cont.mCommon.getCell(cont, field, x, y);
+                var posX = x * (cont.CELL_SIZE_PX + 1);
+                cont.vCommon.redrawCell(cont, cell, posX, posY, cont2D);
             }
-            console.log(y + " : " + str);
-            str = "";
         }        
+    },
+    
+    redrawCell : function(cont, cell, posX, posY, cont2D)
+    {
+        switch (cell)
+        {
+            case cont.CLOSED_EMPTY_CELL:
+            case cont.CLOSED_SHIP_CELL:
+                cont2D.fillStyle = cont.CLOSED_CELL_COLOR;
+                break;
+            case cont.OPENED_EMPTY_CELL:
+                cont2D.fillStyle = cont.EMPTY_CELL_COLOR;
+                break;
+            case cont.OPENED_SHIP_CELL:
+                cont2D.fillStyle = cont.SHIP_CELL_COLOR;
+                break;
+            default:
+                cont2D.fillStyle = cont.CLOSED_CELL_COLOR;
+        }
+        cont2D.fillRect(posX, posY, cont.CELL_SIZE_PX, cont.CELL_SIZE_PX);
     }
 };
-
-var sw = new yvSeaWar();
