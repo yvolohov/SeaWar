@@ -7,9 +7,10 @@
         <script type="text/javascript" src="js/seaWar.js"></script>
     </head>
     <body>
-        <canvas width="1000" height="700" id="swCanvas"></canvas>
+        <canvas width="650" height="330" id="swCanvas"></canvas><br/>       
         <script type="text/javascript">
-            var sw = new yvSeaWar(document.getElementById("swCanvas"));
+            var sw = new yvSeaWar(document.getElementById("swCanvas"));           
         </script>
+        <button onclick="sw.next();">Next move</button>
     </body>
 </html>
