@@ -39,8 +39,10 @@ yvSeaWar.prototype =
     CELL_SIZE_PX : 30,
     FIELD_MARGIN : 10,
     CLOSED_CELL_COLOR : "#696969",
-    EMPTY_CELL_COLOR : "#6495ED",
-    SHIP_CELL_COLOR : "#FF0000"       
+    EMPTY_CELL_COLOR : "#778899",
+    SHIP_CELL_COLOR : "#FF6347",
+    ATTACKED_EMPTY_CELL_COLOR : "#6495ED",
+    ATTACKED_SHIP_CELL_COLOR : "#FF0000"       
 };
 
 /* Общий код (модель) */
@@ -428,23 +430,55 @@ yvSeaWar.prototype.vCommon =
         var pxPosY = cont.vCommon.getCellPixelPositionY(cont, posY);
         var cell = cont.mCommon.getCell(cont, field, posX, posY);
         
+        cont2D.fillStyle = cont.vCommon.getOwnCellColor(cont, cell);
+        cont2D.fillRect(pxPosX, pxPosY, cont.CELL_SIZE_PX, cont.CELL_SIZE_PX);
+    },
+    
+    getEnemyCellColor : function(cont, cell)
+    {
+        var result;
+        
         switch (cell)
         {
             case cont.CLOSED_EMPTY_CELL:
             case cont.CLOSED_SHIP_CELL:
-                cont2D.fillStyle = cont.CLOSED_CELL_COLOR;
+                result = cont.CLOSED_CELL_COLOR;
                 break;
             case cont.OPENED_EMPTY_CELL:
-                cont2D.fillStyle = cont.EMPTY_CELL_COLOR;
+                result = cont.ATTACKED_EMPTY_CELL_COLOR;
                 break;
             case cont.OPENED_SHIP_CELL:
-                cont2D.fillStyle = cont.SHIP_CELL_COLOR;
+                result = cont.ATTACKED_SHIP_CELL_COLOR;
                 break;
             default:
-                cont2D.fillStyle = cont.CLOSED_CELL_COLOR;
+                result = cont.CLOSED_CELL_COLOR;
         }
-        cont2D.fillRect(pxPosX, pxPosY, cont.CELL_SIZE_PX, cont.CELL_SIZE_PX);
-    }
+        return result;
+    },
+    
+    getOwnCellColor : function(cont, cell)
+    {
+        var result;
+        
+        switch (cell)
+        {
+            case cont.CLOSED_EMPTY_CELL:
+                result = cont.EMPTY_CELL_COLOR;
+                break;
+            case cont.CLOSED_SHIP_CELL:
+                result = cont.SHIP_CELL_COLOR;
+                break;
+            case cont.OPENED_EMPTY_CELL:
+                result = cont.ATTACKED_EMPTY_CELL_COLOR;
+                break;
+            case cont.OPENED_SHIP_CELL:
+                result = cont.ATTACKED_SHIP_CELL_COLOR;
+                break;
+            default:
+                result = cont.CLOSED_CELL_COLOR;
+        }
+        return result;
+    } 
 };
 
 /* Код контроллера (тест) */
