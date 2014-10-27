@@ -8,6 +8,7 @@ function yvSeaWar(canvas)
     this.player1 = 
     {
         type : this.COMPUTER,
+        numField : 1,
         field : this.mCommon.getEmptyField(this),
         motion : this.mAI.getMotionStruct(this)        
     };
@@ -15,6 +16,7 @@ function yvSeaWar(canvas)
     this.player2 = 
     {
         type : this.COMPUTER,
+        numField : 2,
         field : this.mCommon.getEmptyField(this),
         motion : this.mAI.getMotionStruct(this)
     };
@@ -22,12 +24,13 @@ function yvSeaWar(canvas)
     this.activePlayer = this.player1;
     this.mShipSetting.setShips(this, this.player1.field);
     this.mShipSetting.setShips(this, this.player2.field); 
-    this.vFields.redrawFields(this);
+    this.vFields.redrawField(this, this.player1.field, 
+        this.player1.numField, this.cont2d);
+    this.vFields.redrawField(this, this.player2.field, 
+        this.player2.numField, this.cont2d);
     
     this.gameCycleID = setInterval(function()
-    {
-        self.cCommon.gameCycle(self);
-    }, 100);
+        {self.cCommon.gameCycle(self);}, 500);
 }
 
 /* Константы состояний ячеек поля */
@@ -415,13 +418,7 @@ yvSeaWar.prototype.mAI =
 
 /* Код отображения игровых полей и ячеек (вид) */
 yvSeaWar.prototype.vFields = 
-{   
-    redrawFields : function(cont)
-    {    
-        cont.vFields.redrawField(cont, cont.player1.field, 1, cont.cont2d);
-        cont.vFields.redrawField(cont, cont.player2.field, 2, cont.cont2d);
-    },
-            
+{           
     redrawField : function(cont, field, numField, cont2D)
     {                      
         for (var y = 0; y < cont.FIELD_HEIGHT; y++)
@@ -446,7 +443,7 @@ yvSeaWar.prototype.vFields =
         var currentField = posY * (cont.CELL_SIZE_PX + 1);
         return margin + currentField;
     },
-    
+       
     redrawCell : function(cont, posX, posY, field, numField, cont2D)
     {
         var pxPosX = cont.vFields.getCellPixelPositionX(cont, posX, numField);
@@ -500,24 +497,40 @@ yvSeaWar.prototype.cCommon =
         var attackingPlayer = cont.activePlayer;
         var attackedPlayer = (attackingPlayer === cont.player1) 
             ? cont.player2 : cont.player1;
+            
+        if (attackingPlayer.type === cont.COMPUTER) 
+            {cont.cCommon.doAIMove(cont, attackingPlayer, attackedPlayer);}
+ 
+        if (attackingPlayer.motion.state === cont.FAILED_ATTACK)
+        {
+            cont.activePlayer = (attackingPlayer === cont.player1) 
+                ? cont.player2 : cont.player1;
+        }        
+        else if (attackingPlayer.motion.state === cont.END_OF_GAME)
+            {clearInterval(cont.gameCycleID);}
+    },
+    
+    doAIMove : function(cont, attackingPlayer, attackedPlayer)
+    {
+            var attackingPrevious = 
+                {x : attackingPlayer.motion.x, y : attackingPlayer.motion.y};
+            var attackedPrevious = 
+                {x : attackedPlayer.motion.x, y : attackedPlayer.motion.y}; 
+            
+            cont.mAI.aiMove(cont, attackedPlayer.field, attackingPlayer.motion);
+            cont.vFields.redrawCell(cont, attackingPlayer.motion.x,
+                attackingPlayer.motion.y, attackedPlayer.field, 
+                attackedPlayer.numField, cont.cont2d);
+            cont.vFields.redrawCell(cont, attackingPrevious.x,
+                attackingPrevious.y, attackedPlayer.field, 
+                attackedPlayer.numField, cont.cont2d);
+            cont.vFields.redrawCell(cont, attackedPrevious.x,
+                attackedPrevious.y, attackingPlayer.field, 
+                attackingPlayer.numField, cont.cont2d);                
     },
        
     onClickHandler : function(cont, event)
     {
         console.log(event.x + " " + event.y);
-    },
-
-    /* тест */
-    nextAIMove : function(cont)
-    {
-        /* боремся с глюком в Google Chrome перерисовываем
-         * предыдущую и текущую ячейки */
-        var prevPosition = {x : cont.computerMotion.x, y : cont.computerMotion.y};
-        
-        cont.mAI.aiMove(cont, cont.humanField, cont.computerMotion);
-        cont.vFields.redrawCell(cont, cont.computerMotion.x, cont.computerMotion.y,
-            cont.humanField, 1, cont.cont2d);
-        cont.vFields.redrawCell(cont, prevPosition.x, prevPosition.y,
-            cont.humanField, 1, cont.cont2d);
     }   
 };
