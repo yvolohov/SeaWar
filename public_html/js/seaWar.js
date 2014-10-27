@@ -493,21 +493,9 @@ yvSeaWar.prototype.cCommon =
         var prevPosition = {x : cont.computerMotion.x, y : cont.computerMotion.y};
         
         cont.mAI.aiMove(cont, cont.humanField, cont.computerMotion);
-        cont.vFields.redrawCell(
-            cont, 
-            cont.computerMotion.x,
-            cont.computerMotion.y,
-            cont.humanField,
-            1,
-            cont.cont2d
-        );
-        cont.vFields.redrawCell(
-            cont, 
-            prevPosition.x,
-            prevPosition.y,
-            cont.humanField,
-            1,
-            cont.cont2d
-        );
+        cont.vFields.redrawCell(cont, cont.computerMotion.x, cont.computerMotion.y,
+            cont.humanField, 1, cont.cont2d);
+        cont.vFields.redrawCell(cont, prevPosition.x, prevPosition.y,
+            cont.humanField, 1, cont.cont2d);
     }   
 };
