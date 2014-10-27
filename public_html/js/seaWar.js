@@ -3,20 +3,31 @@ function yvSeaWar(canvas)
 {     
     var self = this;    
     this.cont2d = canvas.getContext("2d");
-    this.humanField = this.mCommon.getEmptyField(this);
-    this.computerField = this.mCommon.getEmptyField(this);
-    this.computerMotion = this.mAI.getMotionStruct(this);
     this.shipCellsCount = this.mCommon.getArraySum(this, this.SHIPS);
-
-    this.mShipSetting.setShips(this, this.humanField);
-    this.mShipSetting.setShips(this, this.computerField);
+    
+    this.player1 = 
+    {
+        type : this.COMPUTER,
+        field : this.mCommon.getEmptyField(this),
+        motion : this.mAI.getMotionStruct(this)        
+    };
+    
+    this.player2 = 
+    {
+        type : this.COMPUTER,
+        field : this.mCommon.getEmptyField(this),
+        motion : this.mAI.getMotionStruct(this)
+    };
+    
+    this.activePlayer = this.player1;
+    this.mShipSetting.setShips(this, this.player1.field);
+    this.mShipSetting.setShips(this, this.player2.field); 
     this.vFields.redrawFields(this);
     
-    canvas.onclick = function(event)
-        {self.cCommon.onClickHandler(self, event);};
-    
-    /* тест */
-    this.next = function(){self.cCommon.nextAIMove(self);};
+    this.gameCycleID = setInterval(function()
+    {
+        self.cCommon.gameCycle(self);
+    }, 100);
 }
 
 /* Константы состояний ячеек поля */
@@ -25,6 +36,10 @@ yvSeaWar.prototype =
     FIELD_WIDTH : 10,
     FIELD_HEIGHT : 10,
     SHIPS : [4, 3, 3, 2, 2, 2, 1, 1, 1, 1],
+    
+    /* Виды игроков */
+    HUMAN : 0,
+    COMPUTER : 1,
     
     /* Виды игровых полей */
     OWN_FIELD : 0,
@@ -403,8 +418,8 @@ yvSeaWar.prototype.vFields =
 {   
     redrawFields : function(cont)
     {    
-        cont.vFields.redrawField(cont, cont.humanField, 1, cont.cont2d);
-        cont.vFields.redrawField(cont, cont.computerField, 2, cont.cont2d);
+        cont.vFields.redrawField(cont, cont.player1.field, 1, cont.cont2d);
+        cont.vFields.redrawField(cont, cont.player2.field, 2, cont.cont2d);
     },
             
     redrawField : function(cont, field, numField, cont2D)
@@ -480,6 +495,13 @@ yvSeaWar.prototype.vFields =
 /* Код контроллера (контроллер) */
 yvSeaWar.prototype.cCommon = 
 {
+    gameCycle : function(cont)
+    {
+        var attackingPlayer = cont.activePlayer;
+        var attackedPlayer = (attackingPlayer === cont.player1) 
+            ? cont.player2 : cont.player1;
+    },
+       
     onClickHandler : function(cont, event)
     {
         console.log(event.x + " " + event.y);
