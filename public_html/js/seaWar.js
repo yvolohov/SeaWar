@@ -599,13 +599,13 @@ yvSeaWar.prototype.cCommon =
         var attackingPlayer = cont.activePlayer;
         var attackedPlayer = (attackingPlayer === cont.player1) 
             ? cont.player2 : cont.player1;        
-        
+
         if (attackingPlayer.type !== cont.HUMAN)
             {return;}            
         
-        var cellX = cont.cCommon.getCellByPixelPositionX(cont, event.x, 
+        var cellX = cont.cCommon.getCellByPixelPositionX(cont, event.offsetX, 
             attackedPlayer.numField);    
-        var cellY = cont.cCommon.getCellByPixelPositionY(cont, event.y);
+        var cellY = cont.cCommon.getCellByPixelPositionY(cont, event.offsetY);
         
         if (cellX >=0 && cellY >= 0)
         {
