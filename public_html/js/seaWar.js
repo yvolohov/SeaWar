@@ -34,7 +34,7 @@ function yvSeaWar(canvas)
     this.gameCycleID = setInterval(function()
         {self.cCommon.gameCycle(self);}, 500);
     canvas.onclick = function()
-        {self.cCommon.onClickHandler(self);};
+        {self.cCommon.onClickHandler(self, event);};
 }
 
 /* Константы состояний ячеек поля */
@@ -216,7 +216,10 @@ yvSeaWar.prototype.mHuman =
     {
         /* Новый ход еще не сделан */
         if (!motion.newMove)
-            {return;}
+        {
+            motion.state = cont.IMPOSSIBLE_ATTACK;
+            return;
+        }
         
         var cellValue = cont.mCommon.getCell(cont, field, motion.nx, motion.ny);
         
@@ -224,6 +227,7 @@ yvSeaWar.prototype.mHuman =
         if (!(cellValue === cont.CLOSED_EMPTY_CELL 
                 || cellValue === cont.CLOSED_SHIP_CELL))
         {
+            motion.state = cont.IMPOSSIBLE_ATTACK;
             motion.newMove = false;
             return;
         }
@@ -246,7 +250,6 @@ yvSeaWar.prototype.mHuman =
         
         /* Новый ход обработан */
         motion.newMove = false;
-        motion.redraw = true;
     },
     
     getMotionStruct : function(cont)
@@ -255,7 +258,6 @@ yvSeaWar.prototype.mHuman =
             state : cont.IMPOSSIBLE_ATTACK,
             newMove : false,       // признак нового хода
             nx : 0, ny : 0,        // координаты нового хода
-            redraw : true,         // признак перерисовки экрана
             x : 0, y : 0,          // позиция последнего сделанного хода
             shipCellsDestroyed : 0 // сколько корабельных ячеек уничтожено
         };
@@ -464,7 +466,6 @@ yvSeaWar.prototype.mAI =
     {
         return {
             state : cont.IMPOSSIBLE_ATTACK,
-            redraw : true,
             x : 0, y : 0,
             x1 : 0, y1 : 0,
             x2 : 0, y2 : 0,
@@ -579,25 +580,67 @@ yvSeaWar.prototype.cCommon =
             else if (attackingPlayer.type === cont.HUMAN)
                 {cont.mHuman.humanMove(cont, attackedPlayer.field, attackingPlayer.motion);}
             
-            if (attackedPlayer.motion.redraw)
-            {
-                cont.vFields.redrawCell(cont, attackingPlayer.motion.x,
-                    attackingPlayer.motion.y, attackedPlayer.field, 
-                    attackedPlayer.numField, attackedPlayer.typeField, cont.cont2d);
-                cont.vFields.redrawCell(cont, attackingPrevious.x,
-                    attackingPrevious.y, attackedPlayer.field, 
-                    attackedPlayer.numField, attackedPlayer.typeField, cont.cont2d);
-                cont.vFields.redrawCell(cont, attackedPrevious.x,
-                    attackedPrevious.y, attackingPlayer.field, 
-                    attackingPlayer.numField, attackingPlayer.typeField, cont.cont2d);
-                attackedPlayer.motion.redraw = false;    
-            }
+            if (attackedPlayer.motion.state === cont.IMPOSSIBLE_ATTACK)
+                {return;}
+                
+            cont.vFields.redrawCell(cont, attackingPlayer.motion.x,
+                attackingPlayer.motion.y, attackedPlayer.field, 
+                attackedPlayer.numField, attackedPlayer.typeField, cont.cont2d);
+            cont.vFields.redrawCell(cont, attackingPrevious.x,
+                attackingPrevious.y, attackedPlayer.field, 
+                attackedPlayer.numField, attackedPlayer.typeField, cont.cont2d);
+            cont.vFields.redrawCell(cont, attackedPrevious.x,
+                attackedPrevious.y, attackingPlayer.field, 
+                attackingPlayer.numField, attackingPlayer.typeField, cont.cont2d);    
     },
        
     onClickHandler : function(cont, event)
     {
-        cont.player1.motion.nx = 1;
-        cont.player1.motion.ny = 2;
-        cont.player1.motion.newMove = true;
-    }   
+        var attackingPlayer = cont.activePlayer;
+        var attackedPlayer = (attackingPlayer === cont.player1) 
+            ? cont.player2 : cont.player1;        
+        
+        if (attackingPlayer.type !== cont.HUMAN)
+            {return;}            
+        
+        var cellX = cont.cCommon.getCellByPixelPositionX(cont, event.x, 
+            attackedPlayer.numField);    
+        var cellY = cont.cCommon.getCellByPixelPositionY(cont, event.y);
+        
+        console.log(cellX + " " + cellY);
+        
+//        cont.player1.motion.nx = Math.floor(Math.random() * cont.FIELD_WIDTH);
+//        cont.player1.motion.ny = Math.floor(Math.random() * cont.FIELD_HEIGHT);
+//        cont.player1.motion.newMove = true;
+    },
+    
+    getCellByPixelPositionX : function(cont, x, numField)
+    {
+        var beginField = cont.vFields.getCellPixelPositionX(cont, 0, numField);
+        var endField =  cont.vFields.getCellPixelPositionX(cont, 
+            cont.FIELD_WIDTH, numField);
+            
+        if (x < beginField || x >= endField)
+            {return -1;}
+            
+        var pixelsX = x - beginField + 1;
+        var cellX = Math.floor(pixelsX / (cont.CELL_SIZE_PX + 1));
+        
+        return cellX;
+    },
+    
+    getCellByPixelPositionY : function(cont, y)
+    {
+        var beginField = cont.vFields.getCellPixelPositionY(cont, 0);
+        var endField =  cont.vFields.getCellPixelPositionY(cont, 
+            cont.FIELD_HEIGHT);
+            
+        if (y < beginField || y >= endField)
+            {return -1;}
+            
+        var pixelsY = y - beginField + 1;
+        var cellY = Math.floor(pixelsY / (cont.CELL_SIZE_PX + 1));
+        
+        return cellY;
+    }
 };
