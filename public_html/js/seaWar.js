@@ -607,11 +607,12 @@ yvSeaWar.prototype.cCommon =
             attackedPlayer.numField);    
         var cellY = cont.cCommon.getCellByPixelPositionY(cont, event.y);
         
-        console.log(cellX + " " + cellY);
-        
-//        cont.player1.motion.nx = Math.floor(Math.random() * cont.FIELD_WIDTH);
-//        cont.player1.motion.ny = Math.floor(Math.random() * cont.FIELD_HEIGHT);
-//        cont.player1.motion.newMove = true;
+        if (cellX >=0 && cellY >= 0)
+        {
+            cont.player1.motion.nx = cellX;
+            cont.player1.motion.ny = cellY;
+            cont.player1.motion.newMove = true;            
+        }     
     },
     
     getCellByPixelPositionX : function(cont, x, numField)
