@@ -1,22 +1,24 @@
 /* Объект хранит данные игры */
 function yvSeaWar(canvas)
-{     
+{
     var self = this;    
     this.cont2d = canvas.getContext("2d");
     this.shipCellsCount = this.mCommon.getArraySum(this, this.SHIPS);
     
     this.player1 = 
     {
-        type : this.COMPUTER,
+        type : this.HUMAN,
         numField : 1,
+        typeField : this.OWN_FIELD,
         field : this.mCommon.getEmptyField(this),
-        motion : this.mAI.getMotionStruct(this)        
+        motion : this.mHuman.getMotionStruct(this)        
     };
     
     this.player2 = 
     {
         type : this.COMPUTER,
         numField : 2,
+        typeField : this.ENEMY_FIELD,
         field : this.mCommon.getEmptyField(this),
         motion : this.mAI.getMotionStruct(this)
     };
@@ -25,12 +27,14 @@ function yvSeaWar(canvas)
     this.mShipSetting.setShips(this, this.player1.field);
     this.mShipSetting.setShips(this, this.player2.field); 
     this.vFields.redrawField(this, this.player1.field, 
-        this.player1.numField, this.cont2d);
+        this.player1.numField, this.player1.typeField, this.cont2d);
     this.vFields.redrawField(this, this.player2.field, 
-        this.player2.numField, this.cont2d);
+        this.player2.numField, this.player2.typeField, this.cont2d);
     
     this.gameCycleID = setInterval(function()
         {self.cCommon.gameCycle(self);}, 500);
+    canvas.onclick = function()
+        {self.cCommon.onClickHandler(self);};
 }
 
 /* Константы состояний ячеек поля */
@@ -206,9 +210,61 @@ yvSeaWar.prototype.mShipSetting =
     }    
 };
 
+yvSeaWar.prototype.mHuman = 
+{
+    humanMove : function(cont, field, motion)
+    {
+        /* Новый ход еще не сделан */
+        if (!motion.newMove)
+            {return;}
+        
+        var cellValue = cont.mCommon.getCell(cont, field, motion.nx, motion.ny);
+        
+        /* Попытка сделать ход в несуществующую или открытую ячейку */
+        if (!(cellValue === cont.CLOSED_EMPTY_CELL 
+                || cellValue === cont.CLOSED_SHIP_CELL))
+        {
+            motion.newMove = false;
+            return;
+        }
+        
+        motion.x = motion.nx;
+        motion.y = motion.ny;
+        cont.mCommon.setCell(cont, field, motion.x, motion.y, cellValue + 2);
+        
+        if (cellValue === cont.CLOSED_SHIP_CELL) 
+        {
+            motion.state === cont.SUCCESSFUL_ATTACK;
+            motion.shipCellsDestroyed++;
+        }
+        else if (cellValue === cont.CLOSED_EMPTY_CELL) 
+            {motion.state = cont.FAILED_ATTACK;}
+         
+        /* Если подбит последний корабль, игра закончилась */
+        if (motion.shipCellsDestroyed === cont.shipCellsCount)
+            {motion.state = cont.END_OF_GAME;}
+        
+        /* Новый ход обработан */
+        motion.newMove = false;
+        motion.redraw = true;
+    },
+    
+    getMotionStruct : function(cont)
+    {
+        return {
+            state : cont.IMPOSSIBLE_ATTACK,
+            newMove : false,       // признак нового хода
+            nx : 0, ny : 0,        // координаты нового хода
+            redraw : true,         // признак перерисовки экрана
+            x : 0, y : 0,          // позиция последнего сделанного хода
+            shipCellsDestroyed : 0 // сколько корабельных ячеек уничтожено
+        };
+    }    
+};
+
 /* Код игрового интеллекта (модель) */
 yvSeaWar.prototype.mAI = 
-{        
+{
     /* Игровой интеллект делает один ход
      * cont - контекст;
      * field - игровое поле противника;
@@ -220,7 +276,7 @@ yvSeaWar.prototype.mAI =
         
         /* Получаем список позиций для атаки */
         var positions = cont.mAI.getPositions(cont, field, motion);        
-        
+                
         /* Если позиций для выстрела нет, игра закончилась */
         if (positions.length === 0)
         {
@@ -230,6 +286,7 @@ yvSeaWar.prototype.mAI =
         
         /* Проводим атаку */
         cont.mAI.doAttack(cont, field, motion, positions);
+        motion.redraw = true;
         
         /* Если подбит последний корабль, игра закончилась */
         if (motion.shipCellsDestroyed === cont.shipCellsCount)
@@ -407,6 +464,7 @@ yvSeaWar.prototype.mAI =
     {
         return {
             state : cont.IMPOSSIBLE_ATTACK,
+            redraw : true,
             x : 0, y : 0,
             x1 : 0, y1 : 0,
             x2 : 0, y2 : 0,
@@ -418,13 +476,13 @@ yvSeaWar.prototype.mAI =
 
 /* Код отображения игровых полей и ячеек (вид) */
 yvSeaWar.prototype.vFields = 
-{           
-    redrawField : function(cont, field, numField, cont2D)
+{
+    redrawField : function(cont, field, numField, typeField, cont2D)
     {                      
         for (var y = 0; y < cont.FIELD_HEIGHT; y++)
         {
             for (var x = 0; x < cont.FIELD_WIDTH; x++)
-                {cont.vFields.redrawCell(cont, x, y, field, numField, cont2D);}
+                {cont.vFields.redrawCell(cont, x, y, field, numField, typeField, cont2D);}
         }        
     },
     
@@ -444,31 +502,31 @@ yvSeaWar.prototype.vFields =
         return margin + currentField;
     },
        
-    redrawCell : function(cont, posX, posY, field, numField, cont2D)
+    redrawCell : function(cont, posX, posY, field, numField, typeField, cont2D)
     {
         var pxPosX = cont.vFields.getCellPixelPositionX(cont, posX, numField);
         var pxPosY = cont.vFields.getCellPixelPositionY(cont, posY);
         var cell = cont.mCommon.getCell(cont, field, posX, posY);
         
-        cont2D.fillStyle = cont.vFields.getCellColor(cont, cell, cont.OWN_FIELD);
+        cont2D.fillStyle = cont.vFields.getCellColor(cont, cell, typeField);
         cont2D.fillRect(pxPosX, pxPosY, cont.CELL_SIZE_PX, cont.CELL_SIZE_PX);
     },
     
-    getCellColor : function(cont, cell, fieldType)
+    getCellColor : function(cont, cell, typeField)
     {
         var result;
         
         switch (cell)
         {
             case cont.CLOSED_EMPTY_CELL:               
-                if (fieldType === cont.OWN_FIELD) 
+                if (typeField === cont.OWN_FIELD) 
                     {result = cont.EMPTY_CELL_COLOR;} 
                 else 
                     {result = cont.CLOSED_CELL_COLOR;}
                 break;
             
             case cont.CLOSED_SHIP_CELL:
-                if (fieldType === cont.OWN_FIELD) 
+                if (typeField === cont.OWN_FIELD) 
                     {result = cont.SHIP_CELL_COLOR;} 
                 else 
                     {result = cont.CLOSED_CELL_COLOR;}
@@ -497,10 +555,9 @@ yvSeaWar.prototype.cCommon =
         var attackingPlayer = cont.activePlayer;
         var attackedPlayer = (attackingPlayer === cont.player1) 
             ? cont.player2 : cont.player1;
-            
-        if (attackingPlayer.type === cont.COMPUTER) 
-            {cont.cCommon.doAIMove(cont, attackingPlayer, attackedPlayer);}
- 
+        
+        cont.cCommon.doMove(cont, attackingPlayer, attackedPlayer);
+  
         if (attackingPlayer.motion.state === cont.FAILED_ATTACK)
         {
             cont.activePlayer = (attackingPlayer === cont.player1) 
@@ -510,27 +567,37 @@ yvSeaWar.prototype.cCommon =
             {clearInterval(cont.gameCycleID);}
     },
     
-    doAIMove : function(cont, attackingPlayer, attackedPlayer)
+    doMove : function(cont, attackingPlayer, attackedPlayer)
     {
             var attackingPrevious = 
                 {x : attackingPlayer.motion.x, y : attackingPlayer.motion.y};
             var attackedPrevious = 
                 {x : attackedPlayer.motion.x, y : attackedPlayer.motion.y}; 
             
-            cont.mAI.aiMove(cont, attackedPlayer.field, attackingPlayer.motion);
-            cont.vFields.redrawCell(cont, attackingPlayer.motion.x,
-                attackingPlayer.motion.y, attackedPlayer.field, 
-                attackedPlayer.numField, cont.cont2d);
-            cont.vFields.redrawCell(cont, attackingPrevious.x,
-                attackingPrevious.y, attackedPlayer.field, 
-                attackedPlayer.numField, cont.cont2d);
-            cont.vFields.redrawCell(cont, attackedPrevious.x,
-                attackedPrevious.y, attackingPlayer.field, 
-                attackingPlayer.numField, cont.cont2d);                
+            if (attackingPlayer.type === cont.COMPUTER)
+                {cont.mAI.aiMove(cont, attackedPlayer.field, attackingPlayer.motion);}
+            else if (attackingPlayer.type === cont.HUMAN)
+                {cont.mHuman.humanMove(cont, attackedPlayer.field, attackingPlayer.motion);}
+            
+            if (attackedPlayer.motion.redraw)
+            {
+                cont.vFields.redrawCell(cont, attackingPlayer.motion.x,
+                    attackingPlayer.motion.y, attackedPlayer.field, 
+                    attackedPlayer.numField, attackedPlayer.typeField, cont.cont2d);
+                cont.vFields.redrawCell(cont, attackingPrevious.x,
+                    attackingPrevious.y, attackedPlayer.field, 
+                    attackedPlayer.numField, attackedPlayer.typeField, cont.cont2d);
+                cont.vFields.redrawCell(cont, attackedPrevious.x,
+                    attackedPrevious.y, attackingPlayer.field, 
+                    attackingPlayer.numField, attackingPlayer.typeField, cont.cont2d);
+                attackedPlayer.motion.redraw = false;    
+            }
     },
        
     onClickHandler : function(cont, event)
     {
-        console.log(event.x + " " + event.y);
+        cont.player1.motion.nx = 1;
+        cont.player1.motion.ny = 2;
+        cont.player1.motion.newMove = true;
     }   
 };
